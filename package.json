@@ -1,0 +1,23 @@
+{
+  "name": "llamasynth",
+  "version": "1.0.0",
+  "description": "LLM moderator",
+  "license": "ISC",
+  "author": "Taras Bozhok",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "lint-fix": "eslint . --fix",
+    "start": "npm run lint && node --env-file .env index.js",
+    "test": "test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0"
+  },
+  "dependencies": {
+    "node-llama-cpp": "^3.19.0"
+  }
+}
