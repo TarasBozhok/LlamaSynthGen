@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "start": "npm run lint && node --env-file .env index.js",
+    "start-file": "npm run lint && node --env-file .env $npm_config_name.js",
     "test": "test"
   },
   "devDependencies": {

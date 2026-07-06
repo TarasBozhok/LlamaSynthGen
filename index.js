@@ -3,9 +3,6 @@ import { getLlama, LlamaChatSession } from 'node-llama-cpp';
 
 var modelPath = path.join(process.env.MODEL_PATH, process.env.MODEL_NAME);
 
-console.log('ENV', process.env.MODEL_PATH, process.env.MODEL_NAME);
-process.exit(0)
-
 var session = await Promise.resolve()
     .then(getLlama)
     .then((llama) => llama.loadModel({ modelPath }))
