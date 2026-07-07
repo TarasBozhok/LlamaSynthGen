@@ -45,7 +45,11 @@ log('END');
 
 async function getActors(actorsNum) {
     var systemPrompt = 'You are a helpful assistant';
-    var discussionStarterText = `Return JSON of structure: key - generate a famous persona name with extraordinary speech patterns, value - generate an instruction for LLM model to behave as this persona, keep it short. The number of object entries is ${actorsNum}`;
+    var discussionStarterText = `
+        Return JSON of structure: key - generate a famous persona name with extraordinary speech patterns, value - generate an instruction for LLM model to generate responses as this persona would.
+        The number of object entries is ${actorsNum}.
+        The response should contain only valid JSON that could be passed to JSON.parse() right away.
+    `;
 
     return inferModel(
             getPrompt(systemPrompt, discussionStarterText)
