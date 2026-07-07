@@ -23,11 +23,10 @@ var context = await model.createContext();
 var sequence = context.getSequence();
 var inferModel = inferenceFunction.bind(this, sequence, model);
 
-var actors = [];
+var actors = {};
 //Take into account possible glitches
-while (actors.length !== ACTORS_NUM) {
+while ('error' in actors || Object.keys(actors).length !== ACTORS_NUM) {
     actors = await getActors(ACTORS_NUM);
-    log(actors);
 }
 
 var topic = await getTopic();
@@ -44,20 +43,26 @@ log(topic);
 log('END');
 
 async function getActors(actorsNum) {
-    var systemPrompt = `You are a helpful assistant. You are always responding with data structures, you must ALWAYS return valid JavaScript objects as JSON strings.`;
+    var systemPrompt = `You are a helpful assistant. Your responses are presice, without extra words or characters.`;
 
     var discussionStarterText = `
-        For ${actorsNum} famous personas with extraordinary speech patterns generate an object where:
-            every key is a persona name.
-            every value is a prompt for LLM to to behave as this persona.
+        Generate a numbered list of ${actorsNum} items. Each item should start from famous persona name, then a pipe('|') character then no more than 3 sentences this persona's description for LLM to be used as prompt.
     `;
 
     return inferModel(
             getPrompt(systemPrompt, discussionStarterText)
         )
         .then((response) => {
-            var cleanResp = response.slice(response.indexOf('{'), response.lastIndexOf('}')+1).replaceAll('""', '"');
-            return JSON.parse(cleanResp);
+            const ORDERED_LIST_ITEM = /\d\s?\./;
+            var processedResponse = response.trim().slice(response.search(ORDERED_LIST_ITEM));
+            var chunks = processedResponse.split(ORDERED_LIST_ITEM).filter(Boolean);
+            var actors = chunks.reduce((acc, el) => {
+                var [name, description] = el.split('|').map((el) => el.trim());
+                acc[name] = description;
+                return acc;
+            }, {});
+
+            return actors;
         })
         .catch((e) => ({ error: true, e }));
 }
