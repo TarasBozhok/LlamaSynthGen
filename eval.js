@@ -44,18 +44,17 @@ log(topic);
 log('END');
 
 async function getActors(actorsNum) {
-    var systemPrompt = 'You are a helpful assistant';
+    var systemPrompt = 'You are a helpful assistant. Your response is always a valid JSON, no extra words or characters.';
     var discussionStarterText = `
-        Return JSON of structure: key - generate a famous persona name with extraordinary speech patterns, value - generate an instruction for LLM model to generate responses as this persona would.
+        Retun list(JavaScript array) of objects where very object is: key - a famous persona name with extraordinary speech patterns, value - an instruction for LLM model to generate responses as this persona would.
         The number of object entries is ${actorsNum}.
-        The response should contain only valid JSON that could be passed to JSON.parse() right away.
     `;
 
     return inferModel(
             getPrompt(systemPrompt, discussionStarterText)
         )
         .then((response) => {
-            var cleanResp = response.replace(/<\|\w+\W*\|>/g, '').trim();
+            var cleanResp = response.replace(/<\|\w+\W*\|>/g, '').replaceAll('```', '').trim();
             log(cleanResp);
             return JSON.parse(cleanResp);
         })
