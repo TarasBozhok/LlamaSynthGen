@@ -21,8 +21,7 @@ var model = await Promise.resolve()
     .then(getLlama)
     .then((llama) => llama.loadModel({ modelPath }));
 var context = await model.createContext();
-var sequence = context.getSequence();
-var inferModel = inferenceFunction.bind(this, sequence, model);
+var inferModel = inferenceFunction.bind(this, context, model);
 
 var actors = await getActors(ACTORS_NUM);
 actors = Array.isArray(actors) ? actors : [];
@@ -55,8 +54,9 @@ async function getTopic(actorsNum) {
     );
 }
 
-async function inferenceFunction(sequence, model, text) {
-    await model.clearHistory();
+async function inferenceFunction(context, model, text) {
+    await context.clearHistory();
+    var sequence = context.getSequence();
     var lastTen = [],
         generated = [];
 
