@@ -9,8 +9,7 @@ const SPECIAL_TOKENS_FLAG = true;
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
-    repeatPenalty: 10,
-    temperature: 1
+    temperature: 1.1
 };
 
 log('START');
@@ -24,9 +23,10 @@ var context = await model.createContext();
 var sequence = context.getSequence();
 var inferModel = inferenceFunction.bind(this, sequence, model);
 
+var actors = [];
 //Take into account possible glitches
 while (actors.length !== ACTORS_NUM) {
-    var actors = await getActors(ACTORS_NUM);
+    actors = await getActors(ACTORS_NUM);
     log(actors);
 }
 
@@ -51,7 +51,9 @@ async function getActors(actorsNum) {
             getPrompt(systemPrompt, discussionStarterText)
         )
         .then((response) => {
-            return JSON.parse(response.replace(/<\|\w+\W*\|>/g, ''));
+            var cleanResp = response.replace(/<\|\w+\W*\|>/g, '').trim();
+            log(cleanResp);
+            return JSON.parse(cleanResp);
         })
         .catch(() => ({ error: true }));
 }
