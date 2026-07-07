@@ -39,9 +39,4 @@ desktop.ini
 *.tmp
 *.temp
 
-# Coverage
-/coverage
-/.nyc_output
-
-# Jest
-__coverage__
+.continue
