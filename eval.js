@@ -32,15 +32,22 @@ while ('error' in actors || Object.keys(actors).length !== ACTORS_NUM) {
 var topic = await getTopic();
 var discussionStarterText = `Let's start the discussion with the topic ${topic}`;
 
-var accumulatedDiscussion = [];
+var accumulatedDiscussion = [discussionStarterText];
 for (var round = 0; round <= ROUNDS_NUM; round++) {
-    //void
+    Object.keys(actors).forEach(async (actorName) => {
+        var systemPrompt = `You are ${actorName}. ${actors[actorName]}`;
+
+        var response = await inferModel(getPrompt(systemPrompt, discussionStarterText));
+        log(response);
+        discussionStarterText = response;
+        accumulatedDiscussion.push(response);
+    });
 }
 
-log(actors);
-log(topic);
-
 log('END');
+
+
+log(accumulatedDiscussion);
 
 async function getActors(actorsNum) {
     var systemPrompt = `You are a helpful assistant. Your responses are presice, without extra words or characters.`;
