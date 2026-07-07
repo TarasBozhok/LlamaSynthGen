@@ -33,42 +33,22 @@ var topic = await getTopic();
 var discussionStarterText = `Let's start the discussion with the topic ${topic}`;
 
 var actorNames = Object.keys(actors);
-var accumulatedDiscussion = [discussionStarterText];
+var accumulatedDiscussion = [];
 var responseIterator = getActorResponseIterator();
 for (var round = 0; round <= ROUNDS_NUM; round++) {
     console.log('round: ', round);
     for (var actorName in actorNames) {
         console.log('actor: ', actorName);
-        var systemPrompt = `You are ${actorName}. ${actors[actorName]}`;
+        var systemPrompt = `You are ${actorName}. ${actors[actorName]}. Respond with no more than 3 sentences.`;
 
-        var response = (await responseIterator.next(systemPrompt, discussionStarterText)).value;
-        log(response);
-        if (accumulatedDiscussion.length > 1) discussionStarterText = response;
+        var response = (await responseIterator.next([systemPrompt, discussionStarterText])).value;
+        logger(actorName, response);
         accumulatedDiscussion.push(response);
+        if (accumulatedDiscussion.length > 1) discussionStarterText = response;
     }
 }
 
-// var responseIterator = getActorResponseIterator();
-// var actorNames = Object.keys(actors);
-
-// var currActor = 0;
-// var systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
-// var response = await responseIterator.next(systemPrompt, discussionStarterText).value;
-// log(response);
-// discussionStarterText = response;
-// accumulatedDiscussion.push(response);
-
-// currActor++;
-// systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
-// response = await responseIterator.next(systemPrompt, discussionStarterText).value;
-// log(response);
-// discussionStarterText = response;
-// accumulatedDiscussion.push(response);
-
-
 log('END');
-
-
 log(accumulatedDiscussion);
 
 async function getActors(actorsNum) {
@@ -98,7 +78,7 @@ async function getActors(actorsNum) {
 
 async function getTopic(actorsNum) {
     var systemPrompt = 'You are a helpful assistant';
-    var discussionStarterText = `Generate topic name that could be used for a discussion between ${actorsNum} people. Keep it short, no special characters, letters only.`;
+    var discussionStarterText = `Generate topic name that could be used for a discussion between ${actorsNum} people. Keep it short.`;
 
     return inferModel(
         getPrompt(systemPrompt, discussionStarterText))
@@ -142,4 +122,13 @@ async function* getActorResponseIterator() {
     while (true) {
         [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText));
     }
+}
+
+import { styleText } from 'node:util';
+
+ function logger(category='DEBUG', msg) {
+        var message = msg?.message || msg || {};
+        if (typeof message === 'object') message = JSON.stringify(message);
+        console.log( styleText(['green', 'bold'], category) );
+        console.log( styleText('green', message) );
 }
