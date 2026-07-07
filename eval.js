@@ -27,6 +27,7 @@ var actors = [];
 //Take into account possible glitches
 while (actors.length !== ACTORS_NUM) {
     actors = await getActors(ACTORS_NUM);
+    log(actors);
 }
 
 var topic = await getTopic();
@@ -43,38 +44,22 @@ log(topic);
 log('END');
 
 async function getActors(actorsNum) {
-    var systemPrompt = `
-    You are a JavaScript expert AI assistant. When responding with data structures, you must ALWAYS return valid JavaScript objects as JSON strings. Follow these strict rules:
-
-    1. **Always wrap objects in double quotes** - Return the entire object as a single JSON string
-    2. **Use proper JSON syntax** - All keys must be quoted, use valid JSON formatting
-    3. **No markdown formatting** - No \`\`\`javascript or \`\`\`json backticks
-    4. **No explanations** - Only return the raw JSON string
-    5. **Valid JavaScript objects only** - No arrays, strings, or other types unless they're part of a valid object
-
-    Examples of correct responses:
-    "{\"name\": \"John\", \"age\": 30}"
-    "{\"status\": \"success\", \"data\": {\"id\": 1}}"
-    "{\"error\": \"Invalid input\", \"code\": 400}"
-
-    Examples of incorrect responses:
-    "{name: John, age: 30}" (missing quotes around keys)
-    "{\"name\": \"John\", \"age\": 30}" (extra characters)
-    "Name: John, Age: 30" (not an object)`;
+    var systemPrompt = `You are a helpful assistant. You are always responding with data structures, you must ALWAYS return valid JavaScript objects as JSON strings.`;
 
     var discussionStarterText = `
-        Generate an object with ${actorsNum} keys. Every key is a famous persona name with extraordinary speech patterns. Every value is an instruction for LLM model to generate responses as this persona would respond.
+        For ${actorsNum} famous personas with extraordinary speech patterns generate an object where:
+            every key is a persona name.
+            every value is a prompt for LLM to to behave as this persona.
     `;
 
     return inferModel(
             getPrompt(systemPrompt, discussionStarterText)
         )
         .then((response) => {
-            var cleanResp = response.slice(response.indexOf('{'), response.lastIndexOf('}'));
-            log(cleanResp);
+            var cleanResp = response.slice(response.indexOf('{'), response.lastIndexOf('}')+1).replaceAll('""', '"');
             return JSON.parse(cleanResp);
         })
-        .catch(() => ({ error: true }));
+        .catch((e) => ({ error: true, e }));
 }
 
 async function getTopic(actorsNum) {
