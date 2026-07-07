@@ -7,6 +7,12 @@ const ACTORS_NUM = 2;
 const ROUNDS_NUM = 5;
 const SPECIAL_TOKENS_FLAG = true;
 
+var sequenseEvaluateOptions = {
+    cachePrompt: false,
+    repeatPenalty: 10,
+    temperature: 0.1
+};
+
 log('START');
 
 var modelPath = path.join(process.env.MODEL_PATH, process.env.MODEL_NAME);
@@ -33,21 +39,28 @@ async function getActors(actorsNum) {
     var systemPrompt = 'You are a helpful assistant';
     var discussionStarterText = `Generate a pipe('|') separated list of ${actorsNum} famous personas with extraordinary speech patterns. Keep it short, the list only.`;
 
-    return inferModel(getPrompt(systemPrompt, discussionStarterText)).then((response) => response.replace(/<\|\w+\W*\|>/g, '').split('|').map(String.prototype.trim));
+    return inferModel(
+        getPrompt(systemPrompt, discussionStarterText))
+            .then((response) => response.replace(/<\|\w+\W*\|>/g, '').split('|').filter(Boolean).map((el) => el.trim())
+    );
 }
 
 async function getTopic(actorsNum) {
     var systemPrompt = 'You are a helpful assistant';
     var discussionStarterText = `Generate topic name that could be used for a discussion between ${actorsNum} people. Keep it short, no special characters, letters only.`;
 
-    return inferModel(getPrompt(systemPrompt, discussionStarterText)).then((response) => response.replace(/<\|\w+.*/g, ''));
+    return inferModel(
+        getPrompt(systemPrompt, discussionStarterText))
+            .then((response) => response.replace(/<\|\w+.*/g, '').trim()
+    );
 }
 
 async function inferenceFunction(sequence, model, text) {
+    await model.clearHistory();
     var lastTen = [],
         generated = [];
 
-    for await (var generatedToken of sequence.evaluate(model.tokenize(text, SPECIAL_TOKENS_FLAG))) {
+    for await (var generatedToken of sequence.evaluate(model.tokenize(text, SPECIAL_TOKENS_FLAG), sequenseEvaluateOptions)) {
         lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
         generated.push(generatedToken);
 
@@ -55,7 +68,7 @@ async function inferenceFunction(sequence, model, text) {
         if (lastTenDetokenized.includes(TOKENS.EOT)) break;
     }
 
-    return model.detokenize(generated, true);
+    return model.detokenize(generated, SPECIAL_TOKENS_FLAG);
 }
 
 function getPrompt(systemPrompt, userMessage) {
