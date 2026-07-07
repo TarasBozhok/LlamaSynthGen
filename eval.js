@@ -33,11 +33,27 @@ var topic = await getTopic();
 var discussionStarterText = `Let's start the discussion with the topic ${topic}`;
 
 var accumulatedDiscussion = [discussionStarterText];
-for (var round = 0; round <= ROUNDS_NUM; round++) {
-    Object.keys(actors).forEach(async (actorName) => {
-        var systemPrompt = `You are ${actorName}. ${actors[actorName]}`;
+// for (var round = 0; round <= ROUNDS_NUM; round++) {
+//     console.log('round: ', round);
+//     Object.keys(actors).forEach(async (actorName) => {
+//         console.log('actor: ', actorName);
+//         var systemPrompt = `You are ${actorName}. ${actors[actorName]}`;
 
-        var response = await inferModel(getPrompt(systemPrompt, discussionStarterText));
+//         var response = await inferModel(getPrompt(systemPrompt, discussionStarterText));
+//         log(response);
+//         discussionStarterText = response;
+//         accumulatedDiscussion.push(response);
+//     });
+// }
+
+var responseIterator = getActorResponse();
+for (var round = 0; round <= ROUNDS_NUM; round++) {
+    console.log('round: ', round);
+    Object.keys(actors).forEach(async (actorName) => {
+        console.log('actor: ', actorName);
+
+        var systemPrompt = `You are ${actorName}. ${actors[actorName]}`;
+        var response = await responseIterator.next(systemPrompt, discussionStarterText).value;
         log(response);
         discussionStarterText = response;
         accumulatedDiscussion.push(response);
@@ -111,4 +127,11 @@ function getPrompt(systemPrompt, userMessage) {
         ${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>
 
         ${userMessage}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
+}
+
+async function* getActorResponse(systemPrompt='You are a facilitator.', discussionStarterText='Greet all who are present.') {
+    while (true) {
+        var response = await inferModel(getPrompt(systemPrompt, discussionStarterText));
+        yield response;
+    }
 }
