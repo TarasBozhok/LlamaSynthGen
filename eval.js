@@ -9,7 +9,7 @@ const SPECIAL_TOKENS_FLAG = true;
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
-    temperature: 1.1
+    temperature: 1
 };
 
 log('START');
@@ -32,50 +32,38 @@ while ('error' in actors || Object.keys(actors).length !== ACTORS_NUM) {
 var topic = await getTopic();
 var discussionStarterText = `Let's start the discussion with the topic ${topic}`;
 
-var accumulatedDiscussion = [discussionStarterText];
-// for (var round = 0; round <= ROUNDS_NUM; round++) {
-//     console.log('round: ', round);
-//     Object.keys(actors).forEach(async (actorName) => {
-//         console.log('actor: ', actorName);
-//         var systemPrompt = `You are ${actorName}. ${actors[actorName]}`;
-
-//         var response = await inferModel(getPrompt(systemPrompt, discussionStarterText));
-//         log(response);
-//         discussionStarterText = response;
-//         accumulatedDiscussion.push(response);
-//     });
-// }
-
-var responseIterator = getActorResponseIterator();
 var actorNames = Object.keys(actors);
+var accumulatedDiscussion = [discussionStarterText];
+var responseIterator = getActorResponseIterator();
+for (var round = 0; round <= ROUNDS_NUM; round++) {
+    console.log('round: ', round);
+    for (var actorName in actorNames) {
+        console.log('actor: ', actorName);
+        var systemPrompt = `You are ${actorName}. ${actors[actorName]}`;
 
-var currActor = 0;
-var systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
-var response = await responseIterator.next(systemPrompt, discussionStarterText).value;
-log(response);
-discussionStarterText = response;
-accumulatedDiscussion.push(response);
+        var response = (await responseIterator.next(systemPrompt, discussionStarterText)).value;
+        log(response);
+        if (accumulatedDiscussion.length > 1) discussionStarterText = response;
+        accumulatedDiscussion.push(response);
+    }
+}
 
-currActor++;
-systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
-response = await responseIterator.next(systemPrompt, discussionStarterText).value;
-log(response);
-discussionStarterText = response;
-accumulatedDiscussion.push(response);
+// var responseIterator = getActorResponseIterator();
+// var actorNames = Object.keys(actors);
 
-currActor = 0;
-systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
-response = await responseIterator.next(systemPrompt, discussionStarterText).value;
-log(response);
-discussionStarterText = response;
-accumulatedDiscussion.push(response);
-
-currActor++;
-systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
-response = await responseIterator.next(systemPrompt, discussionStarterText).value;
-log(response);
+// var currActor = 0;
+// var systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
+// var response = await responseIterator.next(systemPrompt, discussionStarterText).value;
+// log(response);
 // discussionStarterText = response;
-accumulatedDiscussion.push(response);
+// accumulatedDiscussion.push(response);
+
+// currActor++;
+// systemPrompt = `You are ${actorNames[currActor]}. ${actors[actorNames[currActor]]}`;
+// response = await responseIterator.next(systemPrompt, discussionStarterText).value;
+// log(response);
+// discussionStarterText = response;
+// accumulatedDiscussion.push(response);
 
 
 log('END');
@@ -114,7 +102,7 @@ async function getTopic(actorsNum) {
 
     return inferModel(
         getPrompt(systemPrompt, discussionStarterText))
-            .then((response) => response.replace(/<\|\w+.*/g, '').trim().replace(/\W/g, '')
+            .then((response) => response.replace(/<\|\w+.*/g, '').trim().replace(/[^\w\s]/g, '')
     );
 }
 
@@ -147,9 +135,11 @@ function getPrompt(systemPrompt, userMessage) {
         ${userMessage}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
 }
 
-async function* getActorResponseIterator(systemPrompt='You are a facilitator.', discussionStarterText='Greet all who are present.') {
+async function* getActorResponseIterator() {
+    var systemPrompt='You are a facilitator.';
+    var discussionStarterText='Greet all who are present. Keep it short';
+
     while (true) {
-        var response = await inferModel(getPrompt(systemPrompt, discussionStarterText));
-        yield response;
+        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText));
     }
 }
