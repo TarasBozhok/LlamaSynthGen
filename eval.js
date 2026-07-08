@@ -38,7 +38,8 @@ while (breaker && ('error' in actors || Object.keys(actors).length !== ACTORS_NU
     breaker--;
 }
 if (!breaker) {
-    model.dispose();
+    await model.dispose();
+    console.error('Too long loop');
     process.exit(15);
 }
 
@@ -55,7 +56,7 @@ for (var round = 0; round <= ROUNDS_NUM; round++) {
         console.log( styleText(['green', 'bold'], actorName) );
         systemPrompt = `
             You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
-            ${actors[actorName]}.
+            ${actors[actorName]}.${actorNames.length > 2 ? '\nDo not respond in person.' : ''}
             Respond with no more than 3 sentences.
         `;
 
@@ -64,7 +65,7 @@ for (var round = 0; round <= ROUNDS_NUM; round++) {
         discussion.push(`${actorName}: ${response}`);
     }
 }
-responseIterator.return(discussion);
+responseIterator.return();
 model.dispose();
 
 saveDiscussion(discussion);
@@ -149,7 +150,7 @@ async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
 }
 
 function saveDiscussion(discussion) {
-    var currentDirPath = path.join(fileURLToPath(import.meta.url), 'discussions');
+    var currentDirPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'discussions');
     var fileName = `${(new Date).getTime()}.txt`;
     var contents = typeof discussion === 'string' ? discussion : null;
     if (!contents && Array.isArray(discussion)) contents = discussion.join('\n');
