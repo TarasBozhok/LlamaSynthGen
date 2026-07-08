@@ -35,7 +35,7 @@ var topic = await getTopic();
 var actorNames = Object.keys(actors);
 var discussion = [];
 var systemPrompt = 'You are a precise response generator. Your task is to reproduce the exact input received. No interpretation, no explanation, no formatting changes - just the raw input as provided.';
-var discussionStarterText = `Let's start the discussion.`;
+var discussionStarterText = `Let us start the discussion on ${topic}`;
 var responseIterator = getActorResponseIterator(systemPrompt, discussionStarterText);
 
 for (var round = 0; round <= ROUNDS_NUM; round++) {
