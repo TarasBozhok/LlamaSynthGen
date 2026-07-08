@@ -14,6 +14,9 @@ var sequenseEvaluateOptions = {
 
 log('START');
 
+const TODAY_FORMATTED = (new Date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
+var getPrompt = getPromptFunction.bind(this, TODAY_FORMATTED);
+
 var modelPath = path.join(process.env.MODEL_PATH, process.env.MODEL_NAME);
 var model = await Promise.resolve()
     .then(getLlama)
@@ -114,7 +117,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
     return modelOutput.trim();
 }
 
-var getPrompt = function(todayFormatted, systemPrompt, userMessage) {
+function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 
     return `
         <|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -125,8 +128,6 @@ var getPrompt = function(todayFormatted, systemPrompt, userMessage) {
 
         ${userMessage}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
 }
-const TODAY_FORMATTED = (new Date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
-getPrompt = getPrompt.bind(this, TODAY_FORMATTED);
 
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
     while (true) {
