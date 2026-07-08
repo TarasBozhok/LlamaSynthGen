@@ -1,11 +1,11 @@
 import path from 'node:path';
+import { styleText } from 'node:util';
 import { getLlama } from 'node-llama-cpp';
 import log from './loggerer.js';
 import TOKENS from './tokens.js';
 
 const ACTORS_NUM = 2;
 const ROUNDS_NUM = 5;
-const SPECIAL_TOKENS_FLAG = true;
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
@@ -15,7 +15,6 @@ var sequenseEvaluateOptions = {
 log('START');
 
 var modelPath = path.join(process.env.MODEL_PATH, process.env.MODEL_NAME);
-
 var model = await Promise.resolve()
     .then(getLlama)
     .then((llama) => llama.loadModel({ modelPath }));
@@ -28,28 +27,34 @@ var actors = {};
 while ('error' in actors || Object.keys(actors).length !== ACTORS_NUM) {
     actors = await getActors(ACTORS_NUM);
 }
-
 var topic = await getTopic();
-var discussionStarterText = `Let's start the discussion with the topic ${topic}`;
 
 var actorNames = Object.keys(actors);
-var accumulatedDiscussion = [];
-var responseIterator = getActorResponseIterator();
+var discussion = [];
+var systemPrompt = 'You always respond with input.';
+var discussionStarterText = `Let's start the discussion.`;
+var responseIterator = getActorResponseIterator(systemPrompt, discussionStarterText);
+
 for (var round = 0; round <= ROUNDS_NUM; round++) {
-    console.log('round: ', round);
+    console.log( styleText(['green', 'bold'], `round: ${round}`) );
     for (var actorName in actorNames) {
-        console.log('actor: ', actorName);
-        var systemPrompt = `You are ${actorName}. ${actors[actorName]}. Respond with no more than 3 sentences.`;
+        systemPrompt = `
+            You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
+            ${actors[actorName]}.
+            Respond with no more than 3 sentences.
+        `;
 
         var response = (await responseIterator.next([systemPrompt, discussionStarterText])).value;
-        logger(actorName, response);
-        accumulatedDiscussion.push(response);
-        if (accumulatedDiscussion.length > 1) discussionStarterText = response;
+        var discussionEntry = `${actorName}: ${response}`;
+        discussion.push(discussionEntry);
+        console.log( styleText(['green', 'bold'], discussionEntry) );
+        if (discussion.length > 1) discussionStarterText = discussionEntry;
     }
 }
+responseIterator.return();
 
 log('END');
-log(accumulatedDiscussion);
+log(discussion);
 
 async function getActors(actorsNum) {
     var systemPrompt = `You are a helpful assistant. Your responses are presice, without extra words or characters.`;
@@ -63,7 +68,7 @@ async function getActors(actorsNum) {
         )
         .then((response) => {
             const ORDERED_LIST_ITEM = /\d\s?\./;
-            var processedResponse = response.trim().slice(response.search(ORDERED_LIST_ITEM));
+            var processedResponse = response.slice(response.search(ORDERED_LIST_ITEM));
             var chunks = processedResponse.split(ORDERED_LIST_ITEM).filter(Boolean);
             var actors = chunks.reduce((acc, el) => {
                 var [name, description] = el.split('|').map((el) => el.trim());
@@ -81,29 +86,35 @@ async function getTopic(actorsNum) {
     var discussionStarterText = `Generate topic name that could be used for a discussion between ${actorsNum} people. Keep it short.`;
 
     return inferModel(
-        getPrompt(systemPrompt, discussionStarterText))
-            .then((response) => response.replace(/<\|\w+.*/g, '').trim().replace(/[^\w\s]/g, '')
-    );
+            getPrompt(systemPrompt, discussionStarterText)
+        )
+        .then((response) => response.replace(/[^\w\s]/g, ''));
 }
 
-async function inferenceFunction(sequence, model, text) {
-    await sequence.clearHistory();
+async function inferenceFunction(sequence, model, text, options={ keepHistory: false, specialTokens: true }) {
+    if (!options.keepHistory ) await sequence.clearHistory();
+
     var lastTen = [],
         generated = [];
+    var tokenizedInput = model.tokenize(text, options.specialTokens);
 
-    for await (var generatedToken of sequence.evaluate(model.tokenize(text, SPECIAL_TOKENS_FLAG), sequenseEvaluateOptions)) {
+    for await (var generatedToken of sequence.evaluate(tokenizedInput, sequenseEvaluateOptions)) {
         generated.push(generatedToken);
 
-        // lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
-        // var lastTenDetokenized = model.detokenize(lastTen);
-        // if (lastTenDetokenized.includes(TOKENS.EOT)) break;
+        if (!options.specialTokens) {
+            lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
+
+            if (model.detokenize(lastTen).includes(TOKENS.EOT)) break;
+        }
     }
 
-    return model.detokenize(generated, SPECIAL_TOKENS_FLAG);
+    var modelOutput = model.detokenize(generated, options.specialTokens);
+    if (!options.specialTokens) modelOutput = modelOutput.replace(/<\|\w+\|>/g, '');
+
+    return modelOutput.trim();
 }
 
-function getPrompt(systemPrompt, userMessage) {
-    var todayFormatted = (new Date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
+var getPrompt = function(todayFormatted, systemPrompt, userMessage) {
 
     return `
         <|begin_of_text|><|start_header_id|>system<|end_header_id|>
@@ -114,21 +125,11 @@ function getPrompt(systemPrompt, userMessage) {
 
         ${userMessage}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
 }
+const TODAY_FORMATTED = (new Date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
+getPrompt = getPrompt.bind(this, TODAY_FORMATTED);
 
-async function* getActorResponseIterator() {
-    var systemPrompt='You are a facilitator.';
-    var discussionStarterText='Greet all who are present. Keep it short';
-
+async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
     while (true) {
         [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText));
     }
-}
-
-import { styleText } from 'node:util';
-
- function logger(category='DEBUG', msg) {
-        var message = msg?.message || msg || {};
-        if (typeof message === 'object') message = JSON.stringify(message);
-        console.log( styleText(['green', 'bold'], category) );
-        console.log( styleText('green', message) );
 }
