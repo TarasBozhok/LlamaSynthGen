@@ -8,7 +8,7 @@ import fs from 'node:fs';
 
 const ACTORS_NUM = 3;
 const ROUNDS_NUM = 2;
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
@@ -41,6 +41,7 @@ while (breaker && ('error' in actors || Object.keys(actors).length !== ACTORS_NU
 if (!breaker) {
     await model.dispose();
     console.error('Too long loop');
+    debug('actors', actors);
     process.exit(15);
 }
 
