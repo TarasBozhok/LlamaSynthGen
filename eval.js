@@ -145,7 +145,7 @@ function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
     while (true) {
-        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText), { keepHistory: false, specialTokens: true, streamTokens: process.stdout.write });
+        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText), { keepHistory: false, specialTokens: true, streamTokens: process.stdout.write.bind(process.stdout) });
     }
 }
 
