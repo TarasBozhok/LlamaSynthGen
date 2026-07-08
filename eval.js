@@ -8,6 +8,7 @@ import fs from 'node:fs';
 
 const ACTORS_NUM = 3;
 const ROUNDS_NUM = 2;
+const DEBUG_MODE = false;
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
@@ -56,8 +57,8 @@ for (var round = 0; round <= ROUNDS_NUM; round++) {
         console.log( styleText(['green', 'bold'], actorName) );
         systemPrompt = `
             You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
-            ${actors[actorName]}.${actorNames.length > 2 ? '\nDo not respond in person.' : ''}
-            Respond with no more than 3 sentences.
+            ${actors[actorName]}.
+            ${actorNames.length > 2 ? 'Do not respond in person. ' : ''}Respond with no more than 3 sentences.
         `;
 
         var response = (await responseIterator.next([systemPrompt, discussionStarterText])).value;
@@ -128,6 +129,8 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
     var modelOutput = model.detokenize(generated, options.specialTokens);
     if (!options.specialTokens) modelOutput = modelOutput.replace(/<\|\w+\|>/g, '');
 
+    debug('modelOutput', modelOutput);
+
     return modelOutput.trim();
 }
 
@@ -144,8 +147,14 @@ function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 }
 
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
+    var inferParams = { keepHistory: false, specialTokens: true, streamTokens: process.stdout.write.bind(process.stdout) };
+
     while (true) {
-        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText), { keepHistory: false, specialTokens: true, streamTokens: process.stdout.write.bind(process.stdout) });
+        var inferPrompt = getPrompt(systemPrompt, discussionStarterText);
+        debug('inferPrompt', inferPrompt);
+        [systemPrompt, discussionStarterText] = yield inferModel(inferPrompt, inferParams);
+        debug('new systemPrompt', systemPrompt);
+        debug('new discussionStarterText', discussionStarterText);
     }
 }
 
@@ -161,5 +170,11 @@ function saveDiscussion(discussion) {
         fs.writeFileSync(path.join(currentDirPath, fileName), contents);
     } catch (err) {
         console.error(err);
+    }
+}
+
+function debug(...entries) {
+    if (DEBUG_MODE) {
+        console.log( styleText(['green', 'bold'], entries.shift(), ...entries.slice(1)) );
     }
 }
