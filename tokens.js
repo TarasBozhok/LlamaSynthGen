@@ -5,5 +5,5 @@ var TOKENS = {
     EHI: '<|end_header_id|>',
 }
 
-
 export default Object.freeze(TOKENS);
+

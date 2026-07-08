@@ -1,10 +1,9 @@
 import path from 'node:path';
 import { styleText } from 'node:util';
 import { getLlama } from 'node-llama-cpp';
-import log from './loggerer.js';
-import TOKENS from './tokens.js';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import TOKENS from './tokens.js';
 
 const ACTORS_NUM = 3;
 const ROUNDS_NUM = 2;
@@ -18,7 +17,7 @@ var sequenseEvaluateOptions = {
     seed: Math.round(Math.random() * 2**32)
 };
 
-log('START');
+debug('START');
 
 const TODAY_FORMATTED = (new Date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
 var getPrompt = getPromptFunction.bind(this, TODAY_FORMATTED);
@@ -71,7 +70,7 @@ responseIterator.return();
 model.dispose();
 
 saveDiscussion(discussion);
-log('END');
+debug('END');
 
 async function getActors(actorsNum) {
     var systemPrompt = `You are a helpful assistant. Your responses are presice, without extra words or characters.`;
@@ -144,7 +143,8 @@ function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
         Today Date: ${todayFormatted}
         ${systemPrompt}${TOKENS.EOT}${TOKENS.SHI}user${TOKENS.EHI}
 
-        ${userMessage}${TOKENS.EOT}${TOKENS.SHI}assistant${TOKENS.EHI}`;
+        ${userMessage}${TOKENS.EOT}${TOKENS.SHI}assistant${TOKENS.EHI}
+    `;
 }
 
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
@@ -176,6 +176,6 @@ function saveDiscussion(discussion) {
 
 function debug(...entries) {
     if (DEBUG_MODE) {
-        console.log( styleText(['green', 'bold'], entries.shift(), ...entries.slice(1)) );
+        console.log( styleText(['green', 'bold']), entries.shift(), ...entries.slice(1) );
     }
 }
