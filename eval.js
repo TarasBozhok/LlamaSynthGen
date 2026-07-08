@@ -34,7 +34,7 @@ var topic = await getTopic();
 
 var actorNames = Object.keys(actors);
 var discussion = [];
-var systemPrompt = 'You always respond with input.';
+var systemPrompt = 'You are a precise response generator. Your task is to reproduce the exact input received. No interpretation, no explanation, no formatting changes - just the raw input as provided.';
 var discussionStarterText = `Let's start the discussion.`;
 var responseIterator = getActorResponseIterator(systemPrompt, discussionStarterText);
 
@@ -120,13 +120,13 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
 function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 
     return `
-        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+        ${TOKENS.BOT}${TOKENS.SHI}system${TOKENS.EHI}
 
         Cutting Knowledge Date: December 2023
         Today Date: ${todayFormatted}
-        ${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>
+        ${systemPrompt}${TOKENS.EOT}${TOKENS.SHI}user${TOKENS.EHI}
 
-        ${userMessage}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
+        ${userMessage}${TOKENS.EOT}${TOKENS.SHI}assistant${TOKENS.EHI}`;
 }
 
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
