@@ -31,9 +31,9 @@ var sequence = context.getSequence();
 var inferModel = inferenceFunction.bind(this, sequence, model);
 
 var actors = {},
-    breaker = 10;
+    breaker = 3; //TODO
 //Take into account possible glitches
-while (breaker && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM || Object.values(actors).every(Boolean))) {
+while (breaker > 0 && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM || Object.values(actors).every(Boolean))) {
     actors = await getActors(ACTORS_NUM);
     breaker--;
     sequenseEvaluateOptions.seed = generateSeed();
@@ -84,7 +84,7 @@ async function getActors(actorsNum) {
             getPrompt(systemPrompt, discussionStarterText)
         )
         .then((response) => {
-            const ORDERED_LIST_ITEM = /\d\s?\.\s*\W*/;
+            const ORDERED_LIST_ITEM = /\D?\d\s?\.\s*\W*/;
             var chunks = response.split(ORDERED_LIST_ITEM).slice(1).filter(Boolean);
             var actors = chunks.reduce((acc, el) => {
                 var [name, description] = el.split('|').map((el) => el.trim());
