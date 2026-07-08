@@ -114,7 +114,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
 
     for await (var generatedToken of sequence.evaluate(tokenizedInput, sequenseEvaluateOptions)) {
         generated.push(generatedToken);
-        options.streamTokens(model.detokenize([generatedToken]));
+        options.streamTokens(model.detokenize([generatedToken], options.specialTokens));
 
         if (!options.specialTokens) {
             lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
@@ -144,7 +144,7 @@ function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
     while (true) {
-        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText), { streamTokens: process.stdout.write });
+        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText), { keepHistory: false, specialTokens: true, streamTokens: process.stdout.write });
     }
 }
 
