@@ -3,13 +3,18 @@ import { styleText } from 'node:util';
 import { getLlama } from 'node-llama-cpp';
 import log from './loggerer.js';
 import TOKENS from './tokens.js';
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 
-const ACTORS_NUM = 2;
-const ROUNDS_NUM = 5;
+const ACTORS_NUM = 3;
+const ROUNDS_NUM = 2;
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
-    temperature: 1
+    temperature: 1,
+    // topK: 40,
+    // topP: 0.02,
+    seed: Math.round(Math.random() * 2**32)
 };
 
 log('START');
@@ -39,8 +44,8 @@ var discussionStarterText = `Let us start the discussion on ${topic}`;
 var responseIterator = getActorResponseIterator(systemPrompt, discussionStarterText);
 
 for (var round = 0; round <= ROUNDS_NUM; round++) {
-    console.log( styleText(['green', 'bold'], `round: ${round}`) );
     for (var actorName of actorNames) {
+        console.log( styleText(['green', 'bold'], actorName) );
         systemPrompt = `
             You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
             ${actors[actorName]}.
@@ -49,15 +54,13 @@ for (var round = 0; round <= ROUNDS_NUM; round++) {
 
         var response = (await responseIterator.next([systemPrompt, discussionStarterText])).value;
         discussionStarterText = response;
-        var discussionEntry = `${actorName}: ${response}`;
-        discussion.push(discussionEntry);
-        console.log( styleText(['green', 'bold'], discussionEntry) );
+        discussion.push(`${actorName}: ${response}`);
     }
 }
-responseIterator.return();
+responseIterator.return(discussion);
 
+saveDiscussion(discussion);
 log('END');
-log(discussion);
 
 async function getActors(actorsNum) {
     var systemPrompt = `You are a helpful assistant. Your responses are presice, without extra words or characters.`;
@@ -103,6 +106,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
 
     for await (var generatedToken of sequence.evaluate(tokenizedInput, sequenseEvaluateOptions)) {
         generated.push(generatedToken);
+        process.stdout.write( styleText(['lightgreen'], model.detokenize([generatedToken])) );
 
         if (!options.specialTokens) {
             lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
@@ -132,5 +136,20 @@ function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
     while (true) {
         [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText));
+    }
+}
+
+function saveDiscussion(discussion) {
+    var currentDirPath = path.join(fileURLToPath(import.meta.url), 'discussions');
+    var fileName = `${(new Date).getTime()}.txt`;
+    var contents = typeof discussion === 'string' ? discussion : null;
+    if (!contents && Array.isArray(discussion)) contents = discussion.join('\n');
+    if (!contents && typeof discussion === 'object') contents = JSON.stringify(discussion);
+
+    try {
+        if (!fs.existsSync(currentDirPath)) fs.mkdirSync(currentDirPath)
+        fs.writeFileSync(path.join(currentDirPath, fileName), contents);
+    } catch (err) {
+        console.error(err);
     }
 }
