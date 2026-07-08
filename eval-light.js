@@ -36,25 +36,10 @@ var actorNames = Object.keys(actors);
 var discussion = [];
 var systemPrompt = 'You always respond with input.';
 var discussionStarterText = `Let's start the discussion.`;
-var responseIterator = getActorResponseIterator(systemPrompt, discussionStarterText);
 
-for (var round = 0; round <= ROUNDS_NUM; round++) {
-    console.log( styleText(['green', 'bold'], `round: ${round}`) );
-    for (var actorName of actorNames) {
-        systemPrompt = `
-            You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
-            ${actors[actorName]}.
-            Respond with no more than 3 sentences.
-        `;
+var response = await inferModel(getPrompt(systemPrompt, discussionStarterText));
 
-        var response = (await responseIterator.next([systemPrompt, discussionStarterText])).value;
-        discussionStarterText = response;
-        var discussionEntry = `${actorName}: ${response}`;
-        discussion.push(discussionEntry);
-        console.log( styleText(['green', 'bold'], discussionEntry) );
-    }
-}
-responseIterator.return();
+console.log('response: ', response);
 
 log('END');
 log(discussion);
