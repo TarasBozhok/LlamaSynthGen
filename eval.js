@@ -30,11 +30,18 @@ var context = await model.createContext();
 var sequence = context.getSequence();
 var inferModel = inferenceFunction.bind(this, sequence, model);
 
-var actors = {};
+var actors = {},
+    breaker = 10;
 //Take into account possible glitches
-while ('error' in actors || Object.keys(actors).length !== ACTORS_NUM) {
+while (breaker && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM)) {
     actors = await getActors(ACTORS_NUM);
+    breaker--;
 }
+if (!breaker) {
+    model.dispose();
+    process.exit(15);
+}
+
 var topic = await getTopic();
 
 var actorNames = Object.keys(actors);
@@ -58,6 +65,7 @@ for (var round = 0; round <= ROUNDS_NUM; round++) {
     }
 }
 responseIterator.return(discussion);
+model.dispose();
 
 saveDiscussion(discussion);
 log('END');
@@ -106,7 +114,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
 
     for await (var generatedToken of sequence.evaluate(tokenizedInput, sequenseEvaluateOptions)) {
         generated.push(generatedToken);
-        process.stdout.write( styleText(['lightgreen'], model.detokenize([generatedToken])) );
+        process.stdout.write(model.detokenize([generatedToken]));
 
         if (!options.specialTokens) {
             lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
@@ -114,6 +122,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
             if (model.detokenize(lastTen).includes(TOKENS.EOT)) break;
         }
     }
+    process.stdout.write('\n');
 
     var modelOutput = model.detokenize(generated, options.specialTokens);
     if (!options.specialTokens) modelOutput = modelOutput.replace(/<\|\w+\|>/g, '');
