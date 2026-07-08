@@ -40,7 +40,7 @@ var responseIterator = getActorResponseIterator(systemPrompt, discussionStarterT
 
 for (var round = 0; round <= ROUNDS_NUM; round++) {
     console.log( styleText(['green', 'bold'], `round: ${round}`) );
-    for (var actorName in actorNames) {
+    for (var actorName of actorNames) {
         systemPrompt = `
             You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
             ${actors[actorName]}.
