@@ -33,7 +33,7 @@ var inferModel = inferenceFunction.bind(this, sequence, model);
 var actors = {},
     breaker = 10;
 //Take into account possible glitches
-while (breaker && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM)) {
+while (breaker && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM || Object.values(actors).every(Boolean))) {
     actors = await getActors(ACTORS_NUM);
     breaker--;
     sequenseEvaluateOptions.seed = generateSeed();
