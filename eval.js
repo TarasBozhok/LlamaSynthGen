@@ -14,7 +14,7 @@ var sequenseEvaluateOptions = {
     temperature: 1,
     // topK: 40,
     // topP: 0.02,
-    seed: Math.round(Math.random() * 2**32)
+    seed: generateSeed()
 };
 
 debug('START');
@@ -36,6 +36,7 @@ var actors = {},
 while (breaker && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM)) {
     actors = await getActors(ACTORS_NUM);
     breaker--;
+    sequenseEvaluateOptions.seed = generateSeed();
 }
 if (!breaker) {
     await model.dispose();
@@ -83,9 +84,8 @@ async function getActors(actorsNum) {
             getPrompt(systemPrompt, discussionStarterText)
         )
         .then((response) => {
-            const ORDERED_LIST_ITEM = /\d\s?\./;
-            var processedResponse = response.slice(response.search(ORDERED_LIST_ITEM));
-            var chunks = processedResponse.split(ORDERED_LIST_ITEM).filter(Boolean);
+            const ORDERED_LIST_ITEM = /\d\s?\.\s*\W*/;
+            var chunks = response.split(ORDERED_LIST_ITEM).slice(1).filter(Boolean);
             var actors = chunks.reduce((acc, el) => {
                 var [name, description] = el.split('|').map((el) => el.trim());
                 acc[name] = description;
@@ -176,6 +176,10 @@ function saveDiscussion(discussion) {
 
 function debug(...entries) {
     if (DEBUG_MODE) {
-        console.log( styleText(['green', 'bold'], entries.shift()), ...entries.slice(1) );
+        console.log( styleText(['green', 'bold'], entries.shift()), ...entries );
     }
+}
+
+function generateSeed() {
+    return Math.round(Math.random() * 2**32);
 }
