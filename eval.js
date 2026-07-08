@@ -176,6 +176,6 @@ function saveDiscussion(discussion) {
 
 function debug(...entries) {
     if (DEBUG_MODE) {
-        console.log( styleText(['green', 'bold']), entries.shift(), ...entries.slice(1) );
+        console.log( styleText(['green', 'bold'], entries.shift()), ...entries.slice(1) );
     }
 }
