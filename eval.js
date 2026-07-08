@@ -6,14 +6,12 @@ import fs from 'node:fs';
 import TOKENS from './tokens.js';
 
 const ACTORS_NUM = 3;
-const ROUNDS_NUM = 2;
-const DEBUG_MODE = true;
+const ROUNDS_NUM = 100;
+const DEBUG_MODE = false;
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
     temperature: 1,
-    // topK: 40,
-    // topP: 0.02,
     seed: generateSeed()
 };
 
@@ -31,9 +29,9 @@ var sequence = context.getSequence();
 var inferModel = inferenceFunction.bind(this, sequence, model);
 
 var actors = {},
-    breaker = 3; //TODO
+    breaker = 5;
 //Take into account possible glitches
-while (breaker > 0 && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM || Object.values(actors).every(Boolean))) {
+while (breaker > 0 && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM || !Object.values(actors).every(Boolean))) {
     actors = await getActors(ACTORS_NUM);
     breaker--;
     sequenseEvaluateOptions.seed = generateSeed();
