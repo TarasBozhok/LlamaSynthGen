@@ -105,7 +105,7 @@ async function getTopic(actorsNum) {
         .then((response) => response.replace(/[^\w\s]/g, ''));
 }
 
-async function inferenceFunction(sequence, model, text, options={ keepHistory: false, specialTokens: true }) {
+async function inferenceFunction(sequence, model, text, options={ keepHistory: false, specialTokens: true, streamTokens: () => {} }) {
     if (!options.keepHistory ) await sequence.clearHistory();
 
     var lastTen = [],
@@ -114,7 +114,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
 
     for await (var generatedToken of sequence.evaluate(tokenizedInput, sequenseEvaluateOptions)) {
         generated.push(generatedToken);
-        process.stdout.write(model.detokenize([generatedToken]));
+        options.streamTokens(model.detokenize([generatedToken]));
 
         if (!options.specialTokens) {
             lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
@@ -122,7 +122,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
             if (model.detokenize(lastTen).includes(TOKENS.EOT)) break;
         }
     }
-    process.stdout.write('\n');
+    options.streamTokens('\n');
 
     var modelOutput = model.detokenize(generated, options.specialTokens);
     if (!options.specialTokens) modelOutput = modelOutput.replace(/<\|\w+\|>/g, '');
@@ -144,7 +144,7 @@ function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 
 async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
     while (true) {
-        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText));
+        [systemPrompt, discussionStarterText] = yield inferModel(getPrompt(systemPrompt, discussionStarterText), { streamTokens: process.stdout.write });
     }
 }
 
