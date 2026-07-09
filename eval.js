@@ -106,6 +106,8 @@ async function getActors(actorsNum, useExtraDescription) {
                     ${parsedActors.length > 2 ? 'Do not respond in person. ' : ''}Respond with no more than 3 sentences.
                 `;
             });
+
+            return parsedActors;
         })
         .catch((e) => ({ error: true, e }));
 }
