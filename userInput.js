@@ -1,4 +1,5 @@
 import readline from 'node:readline';
+import { stdin, stdout} from 'node:process'l
 import { styleText } from 'node:util';
 
 var userInputArgs = [
@@ -31,8 +32,8 @@ var userInputArgs = [
 async function* getUserInputIterator() {
     var currIndex = 0;
     var rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
+        input: stdin,
+        output: stdout
     });
 
     while (currIndex < userInputArgs.length) {
@@ -44,8 +45,8 @@ async function* getUserInputIterator() {
                     var result = ans ? currentUserInputArg.formatter(ans) : currentUserInputArg.default;
                     currIndex++;
                     res([currentUserInputArg, result]);
-                    clearLine(2);
-                    process.stdout.write(question.replace('?', `: ${result}`));
+                    clearLineTerminal(2);
+                    console.log(styleText(['bold', 'grey'],currentUserInputArg.question.replace('?', `: ${result}`)));
                 } else {
                     res()
                 }
@@ -57,11 +58,9 @@ async function* getUserInputIterator() {
     return;
 }
 
-function clearLine(numLines=1) {
-    for (var i = 0; i < numLines; i++) {
-        readline.moveCursor(process.stdout, 0, -1);
-        readline.clearLine(process.stdout, 1);
-    }
+function clearLineTerminal(numLines=1) {
+    readline.moveCursor(process.stdout, 0, -numLines);
+    readline.clearLine(process.stdout, 1);
 }
 
 export default async function getUserInput(...constNames) {
