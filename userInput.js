@@ -1,5 +1,5 @@
 import readline from 'node:readline';
-import { stdin, stdout} from 'node:process'l
+import { stdin, stdout} from 'node:process';
 import { styleText } from 'node:util';
 
 var userInputArgs = [
@@ -53,6 +53,7 @@ async function* getUserInputIterator() {
             });
         });
     }
+    console.log('\n');
     rl.close();
 
     return;
