@@ -39,6 +39,9 @@ async function* getUserInputIterator() {
                 if (currentUserInputArg.validator(ans)) {
                     currIndex++;
                     res([currentUserInputArg, ans]);
+                    readline.moveCursor(process.stdout, 0, -1);
+                    readline.clearLine(process.stdout, 1);
+                    readline.clearLine(process.stdout, 1);
                 } else {
                     res()
                 }
