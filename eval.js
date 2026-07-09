@@ -6,7 +6,7 @@ import { getLlama } from 'node-llama-cpp';
 import TOKENS from './tokens.js';
 import getUserInput from './userInput.js';
 
-const [ACTORS_NUM, ROUNDS_NUM, DEBUG_MODE] = await getUserInput('ACTORS_NUM', 'ROUNDS_NUM', 'DEBUG_MODE');
+const {ACTORS_NUM, ROUNDS_NUM, DEBUG_MODE} = await getUserInput('ACTORS_NUM', 'ROUNDS_NUM', 'DEBUG_MODE');
 
 const USE_EXTRA_DESCRIPTION = true;
 

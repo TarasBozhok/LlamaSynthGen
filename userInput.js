@@ -51,12 +51,14 @@ async function* getUserInputIterator() {
 }
 
 export default async function getUserInput(...constNames) {
+    var returnObj = {};
     var userInputIterator = getUserInputIterator(userInputArgs.filter((userInputArg) => constNames.includes(userInputArg.constant)));
     for await (var userAnswer of userInputIterator) {
         if (!userAnswer) continue; // Not valid, re-ask
 
         var [currQuestion, ans] = userAnswer;
-        globalThis[currQuestion.constant] = ans ? currQuestion.formatter(ans) : currQuestion.default;
-
+        returnObj[currQuestion.constant] = ans ? currQuestion.formatter(ans) : currQuestion.default;
     }
+
+    return returnObj;
 }
