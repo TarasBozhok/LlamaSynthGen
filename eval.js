@@ -9,6 +9,7 @@ import getUserInput from './userInput.js';
 const {ACTORS_NUM, ROUNDS_NUM, DEBUG_MODE} = await getUserInput('ACTORS_NUM', 'ROUNDS_NUM', 'DEBUG_MODE');
 
 const USE_EXTRA_DESCRIPTION = true;
+const TOPIC_PLACEHOLDER = '{{TOPIC}}';
 
 var debug = DEBUG_MODE ? debugFunction : () => {};
 
@@ -36,15 +37,15 @@ var context = await model.createContext();
 var sequence = context.getSequence();
 var inferModel = inferenceFunction.bind(this, sequence, model);
 
-var actors = {},
-    breaker = 5;
+var actors = [],
+    loop_breaker = 5;
 //Take into account possible glitches
-while (breaker > 0 && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM || !Object.values(actors).every(Boolean))) {
+while (loop_breaker > 0 && ('error' in actors || actors.length !== ACTORS_NUM || !actors.every((actor) => Object.values(actor).every(Boolean)))) {
     sequenseEvaluateOptions.seed = generateSeed();
-    actors = await getActors(ACTORS_NUM);
-    breaker--;
+    actors = await getActors(ACTORS_NUM, USE_EXTRA_DESCRIPTION);
+    loop_breaker--;
 }
-if (!breaker) {
+if (loop_breaker <= 0) {
     await model.dispose();
     logConsoleError(`Model can not follow the instructions. Exit.`);
     debug('actors', actors);
@@ -52,24 +53,18 @@ if (!breaker) {
 }
 
 var topic = await getTopic();
+resetTopic(actors, null/*oldTopic*/, topic);
 
-var actorNames = Object.keys(actors);
+// var actorNames = Object.keys(actors);
 var discussion = [];
-var systemPrompt = 'You are a precise response generator. Your task is to reproduce the exact input received. No interpretation, no explanation, no formatting changes - just the raw input as provided.';
+var initialSystemPrompt = 'You are a precise response generator. Your task is to reproduce the exact input received. No interpretation, no explanation, no formatting changes - just the raw input as provided.';
 var discussionStarterText = `Let us start the discussion on ${topic}`;
-var responseIterator = getActorResponseIterator(systemPrompt, discussionStarterText);
+var responseIterator = getActorResponseIterator(initialSystemPrompt, discussionStarterText);
 
 for (var round = 0; round <= ROUNDS_NUM; round++) {
-    for (var actorName of actorNames) {
-        console.log( styleText(['green', 'bold'], actorName) );
-        systemPrompt = `
-            You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
-            ${USE_EXTRA_DESCRIPTION ? actors[actorName] + '.' : ''}
-            ${actorNames.length > 2 ? 'Do not respond in person. ' : ''}Respond with no more than 3 sentences.
-        `;
-
-        var response = (await responseIterator.next([systemPrompt, discussionStarterText])).value;
-        var discussionEntry = `${actorName}: ${response}`;
+    for (var actor of actors) {
+        var response = (await responseIterator.next([actor, discussionStarterText])).value;
+        var discussionEntry = `${actor.name}: ${response}`;
         discussionStarterText = discussionEntry;
         discussion.push(discussionEntry);
     }
@@ -80,11 +75,11 @@ model.dispose();
 saveDiscussion(discussion);
 debug('END');
 
-async function getActors(actorsNum) {
+async function getActors(actorsNum, useExtraDescription) {
     var systemPrompt = `You are a helpful assistant. Your responses are presice, without extra words or characters.`;
 
     var discussionStarterText = `
-        Generate a numbered list of ${actorsNum} items. Each item should start from famous persona name, then a pipe('|') character then no more than 3 sentences this persona's description for LLM to be used as prompt.
+        Generate a numbered list of ${actorsNum} items. Each item should start from famous persona name${useExtraDescription ? ", then a pipe('|') character then no more than 3 sentences this persona's description for LLM to be used as prompt." : '.'}
     `;
 
     return inferModel(
@@ -92,14 +87,25 @@ async function getActors(actorsNum) {
         )
         .then((response) => {
             const ORDERED_LIST_ITEM = /\D?\d\.\s*\W*/;// 1.; 2.; etc. Not: 1923.
-            var chunks = response.split(ORDERED_LIST_ITEM).slice(1).filter(Boolean);
-            var actors = chunks.reduce((acc, el) => {
-                var [name, description] = el.split('|').map((el) => el.trim());
-                acc[name] = description;
-                return acc;
-            }, {});
+            var actors = response
+                .split(ORDERED_LIST_ITEM)
+                .slice(1)
+                .filter(Boolean)
+                .map((el) => {
+                    var [name, description] = el.split('|').map((el) => el.trim());
+                    return { name, description };
+                }, {});
 
             return actors;
+        })
+        .then((parsedActors) => {
+            parsedActors.forEach((currentActor) => {
+                currentActor.systemPrompt = `
+                    You are ${currentActor.name} who is having a discussion with ${parsedActors.filter((actor) => actor.name !== currentActor.name).join(' and ') } about ${TOPIC_PLACEHOLDER}.
+                    ${useExtraDescription ? currentActor.description : ''}
+                    ${parsedActors.length > 2 ? 'Do not respond in person. ' : ''}Respond with no more than 3 sentences.
+                `;
+            });
         })
         .catch((e) => ({ error: true, e }));
 }
@@ -154,13 +160,19 @@ function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
     `;
 }
 
-async function* getActorResponseIterator(systemPrompt, discussionStarterText) {
+async function* getActorResponseIterator(initialSystemPrompt, discussionStarterText) {
     var inferParams = { keepHistory: false, specialTokens: true, streamTokens: process.stdout.write.bind(process.stdout) };
+    var actor = {};
+    var systemPrompt = initialSystemPrompt;
 
     while (true) {
         var inferPrompt = getPrompt(systemPrompt, discussionStarterText);
         debug('inferPrompt', inferPrompt);
-        [systemPrompt, discussionStarterText] = yield inferModel(inferPrompt, inferParams);
+
+        if (actor.name) console.log( styleText(['green', 'bold'], actor.name) );
+        [actor, discussionStarterText] = yield inferModel(inferPrompt, inferParams);
+
+        systemPrompt = actor.systemPrompt;
         debug('new systemPrompt', systemPrompt);
         debug('new discussionStarterText', discussionStarterText);
     }
@@ -191,4 +203,8 @@ function logConsoleError(msg) {
 
 function generateSeed() {
     return Math.round(Math.random() * 2**32);
+}
+
+function resetTopic (actors, oldTopic=TOPIC_PLACEHOLDER, newTopic) {
+    actors.forEach((actor) => actor.systemPrompt.replaceAll(oldTopic, newTopic) );
 }
