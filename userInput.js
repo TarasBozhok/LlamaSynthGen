@@ -24,7 +24,7 @@ var userInputArgs = [
         description: '',
         constant: 'DEBUG_MODE',
         validator: () => true,
-        formatter: (val) => val && [true, 'true', 'debug', '+', 1, '1'].includes(val) ? true : false,
+        formatter: (val) => val && [true, 'yes', 'true', 'debug', '+', 1, '1'].includes(val) ? true : false,
         default: false,
     }
 ];
