@@ -1,13 +1,16 @@
 import path from 'node:path';
 import { styleText } from 'node:util';
-import { getLlama } from 'node-llama-cpp';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { getLlama } from 'node-llama-cpp';
 import TOKENS from './tokens.js';
+import getUserInput from './userInput.js';
 
-const ACTORS_NUM = 3;
-const ROUNDS_NUM = 100;
-const DEBUG_MODE = false;
+const [ACTORS_NUM, ROUNDS_NUM, DEBUG_MODE] = await getUserInput('ACTORS_NUM', 'ROUNDS_NUM', 'DEBUG_MODE');
+
+const USE_EXTRA_DESCRIPTION = true;
+
+var debug = DEBUG_MODE ? debugFunction : () => {};
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
@@ -16,6 +19,11 @@ var sequenseEvaluateOptions = {
 };
 
 debug('START');
+
+if (!process.env.MODEL_PATH || process.env.MODEL_NAME) {
+    logConsoleError('Missing required params.');
+    process.exit(1);
+}
 
 const TODAY_FORMATTED = (new Date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
 var getPrompt = getPromptFunction.bind(this, TODAY_FORMATTED);
@@ -32,15 +40,15 @@ var actors = {},
     breaker = 5;
 //Take into account possible glitches
 while (breaker > 0 && ('error' in actors || Object.keys(actors).length !== ACTORS_NUM || !Object.values(actors).every(Boolean))) {
+    sequenseEvaluateOptions.seed = generateSeed();
     actors = await getActors(ACTORS_NUM);
     breaker--;
-    sequenseEvaluateOptions.seed = generateSeed();
 }
 if (!breaker) {
     await model.dispose();
-    console.error('Too long loop');
+    logConsoleError(`Model can not follow the instructions. Exit.`);
     debug('actors', actors);
-    process.exit(15);
+    process.exit(1);
 }
 
 var topic = await getTopic();
@@ -56,7 +64,7 @@ for (var round = 0; round <= ROUNDS_NUM; round++) {
         console.log( styleText(['green', 'bold'], actorName) );
         systemPrompt = `
             You are ${actorName} who is having a discussion with ${actorNames.filter((actorNameEl) => actorNameEl !== actorName).join(' and ') } about ${topic}.
-            ${actors[actorName]}.
+            ${USE_EXTRA_DESCRIPTION ? actors[actorName] + '.' : ''}
             ${actorNames.length > 2 ? 'Do not respond in person. ' : ''}Respond with no more than 3 sentences.
         `;
 
@@ -82,7 +90,7 @@ async function getActors(actorsNum) {
             getPrompt(systemPrompt, discussionStarterText)
         )
         .then((response) => {
-            const ORDERED_LIST_ITEM = /\D?\d\s?\.\s*\W*/;
+            const ORDERED_LIST_ITEM = /\D?\d\.\s*\W*/;// 1.; 2.; etc. Not: 1923.
             var chunks = response.split(ORDERED_LIST_ITEM).slice(1).filter(Boolean);
             var actors = chunks.reduce((acc, el) => {
                 var [name, description] = el.split('|').map((el) => el.trim());
@@ -168,14 +176,16 @@ function saveDiscussion(discussion) {
         if (!fs.existsSync(currentDirPath)) fs.mkdirSync(currentDirPath)
         fs.writeFileSync(path.join(currentDirPath, fileName), contents);
     } catch (err) {
-        console.error(err);
+        logConsoleError(err.toString());
     }
 }
 
-function debug(...entries) {
-    if (DEBUG_MODE) {
-        console.log( styleText(['green', 'bold'], entries.shift()), ...entries );
-    }
+function debugFunction(...entries) {
+    console.log( styleText(['green', 'bold'], entries.shift()), ...entries );
+}
+
+function logConsoleError(msg) {
+    console.error( styleText(['red', 'bold'], 'ERROR:'), msg );
 }
 
 function generateSeed() {
