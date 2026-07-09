@@ -20,7 +20,7 @@ var sequenseEvaluateOptions = {
 
 debug('START');
 
-if (!process.env.MODEL_PATH || process.env.MODEL_NAME) {
+if (!process.env.MODEL_PATH || !process.env.MODEL_NAME) {
     logConsoleError('Missing required params.');
     process.exit(1);
 }
@@ -69,8 +69,9 @@ for (var round = 0; round <= ROUNDS_NUM; round++) {
         `;
 
         var response = (await responseIterator.next([systemPrompt, discussionStarterText])).value;
-        discussionStarterText = response;
-        discussion.push(`${actorName}: ${response}`);
+        var discussionEntry = `${actorName}: ${response}`;
+        discussionStarterText = discussionEntry;
+        discussion.push(discussionEntry);
     }
 }
 responseIterator.return();
