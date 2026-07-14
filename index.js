@@ -146,6 +146,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
     if (!options.specialTokens) modelOutput = modelOutput.replace(/<\|\w+\|>/g, '');
 
     debug('modelOutput', modelOutput);
+    sequenseEvaluateOptions.seed = generateSeed();
 
     return modelOutput.trim();
 }
