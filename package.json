@@ -1,7 +1,7 @@
 {
-  "name": "llamasynth",
+  "name": "llamasynthgen",
   "version": "1.0.0",
-  "description": "LLM moderator",
+  "description": "LLM discussion generator, Llama based.",
   "license": "ISC",
   "author": "Taras Bozhok",
   "type": "module",
@@ -9,8 +9,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "start": "npm run lint && node --env-file .env index.js",
-    "start-file": "npm run lint && node --env-file .env $npm_config_name.js",
+    "start": "npm run lint && node --env-file-if-exists .env index.js",
+    "start-file": "npm run lint && node --env-file-if-exists .env $npm_config_name.js",
     "test": "test"
   },
   "devDependencies": {

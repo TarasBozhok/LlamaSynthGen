@@ -1,5 +1,5 @@
 import readline from 'node:readline';
-import { stdin, stdout} from 'node:process';
+import { stdin, stdout } from 'node:process';
 import { styleText } from 'node:util';
 
 var userInputArgs = [
@@ -29,16 +29,16 @@ var userInputArgs = [
     }
 ];
 
-async function* getUserInputIterator() {
+async function* getUserInputIterator(filteredUserInputArgs) {
     var currIndex = 0;
     var rl = readline.createInterface({
         input: stdin,
         output: stdout
     });
 
-    while (currIndex < userInputArgs.length) {
+    while (currIndex < filteredUserInputArgs.length) {
         yield new Promise((res) => {
-            var currentUserInputArg = userInputArgs[currIndex];
+            var currentUserInputArg = filteredUserInputArgs[currIndex];
             var question = styleText(['bold', 'grey'], currentUserInputArg.question);
             rl.question(question + currentUserInputArg.description + '\n', (ans) => {
                 if (currentUserInputArg.validator(ans)) {
@@ -46,7 +46,7 @@ async function* getUserInputIterator() {
                     currIndex++;
                     res([currentUserInputArg, result]);
                     clearLineTerminal(2);
-                    console.log(styleText(['bold', 'grey'],currentUserInputArg.question.replace('?', `: ${result}`)));
+                    console.log(styleText(['bold', 'grey'], currentUserInputArg.question.replace('?', `: ${result}`)));
                 } else {
                     res()
                 }
@@ -59,7 +59,7 @@ async function* getUserInputIterator() {
     return;
 }
 
-function clearLineTerminal(numLines=1) {
+function clearLineTerminal(numLines = 1) {
     readline.moveCursor(process.stdout, 0, -numLines);
     readline.clearLine(process.stdout, 1);
 }
