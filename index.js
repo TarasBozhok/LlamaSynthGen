@@ -5,13 +5,14 @@ import fs from 'node:fs';
 import { getLlama } from 'node-llama-cpp';
 import { LLAMA3 as LLAMA3_TOKENS } from './tokens.js';
 import getUserInput from './userInput.js';
+import spinner from './spinner.js';
 
 const {ACTORS_NUM, ROUNDS_NUM, DEBUG_MODE} = await getUserInput('ACTORS_NUM', 'ROUNDS_NUM', 'DEBUG_MODE');
 
 const USE_EXTRA_DESCRIPTION = true;
 const TOPIC_PLACEHOLDER = '{{TOPIC}}';
 
-var debug = DEBUG_MODE ? debugFunction : () => {};
+var debug = DEBUG_MODE ? printTextWithHeading : () => {};
 
 var sequenseEvaluateOptions = {
     cachePrompt: false,
@@ -26,6 +27,7 @@ if (!process.env.MODEL_PATH || !process.env.MODEL_NAME) {
     process.exit(1);
 }
 
+spinner.start(`${process.env.MODEL_NAME} is loading`);
 const TODAY_FORMATTED = (new Date).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }).replace(',', '');
 var getPrompt = getPromptFunction.bind(this, TODAY_FORMATTED);
 
@@ -57,7 +59,9 @@ if (loopBreaker <= 0) {
 var topic = await getTopic(ACTORS_NUM);
 resetTopic(actors, null/*oldTopic*/, topic);
 
-var discussion = [];
+spinner.stop();
+
+var fullDiscussion = [];
 var initialSystemPrompt = 'You are a precise response generator. Your task is to reproduce the exact input received. No interpretation, no explanation, no formatting changes - just the raw input as provided.';
 var discussionStarterText = `Let us start the discussion on ${topic}`;
 var responseIterator = getActorResponseIterator(initialSystemPrompt, discussionStarterText);
@@ -65,15 +69,14 @@ var responseIterator = getActorResponseIterator(initialSystemPrompt, discussionS
 for (var round = 0; round <= ROUNDS_NUM; round++) {
     for (var actor of actors) {
         var response = (await responseIterator.next([actor, discussionStarterText])).value;
-        var discussionEntry = `${actor.name}: ${response}`;
-        discussionStarterText = discussionEntry;
-        discussion.push(discussionEntry);
+        discussionStarterText = response;
+        fullDiscussion.push(`${actor.name}: ${response}`);
     }
 }
 responseIterator.return();
 model.dispose();
 
-saveDiscussion(discussion);
+saveDiscussion(fullDiscussion);
 debug('END');
 
 async function getActors(actorsNum, useExtraDescription) {
@@ -173,7 +176,7 @@ async function* getActorResponseIterator(initialSystemPrompt, discussionStarterT
         var inferPrompt = getPrompt(systemPrompt, discussionStarterText);
         debug('inferPrompt', inferPrompt);
 
-        if (actor.name) console.log( styleText(['green', 'bold'], actor.name) );
+        if (actor.name) printTextWithHeading(actor.name);
         [actor, discussionStarterText] = yield inferModel(inferPrompt, inferParams);
 
         systemPrompt = actor.systemPrompt;
@@ -197,7 +200,7 @@ function saveDiscussion(discussion) {
     }
 }
 
-function debugFunction(...entries) {
+function printTextWithHeading(...entries) {
     console.log( styleText(['green', 'bold'], entries.shift()), ...entries );
 }
 
