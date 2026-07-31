@@ -1,10 +1,10 @@
 # LlamaSynthGen
 
-LLM Discussion Generator powered by Llama.cpp models. Generates structured discussions between multiple AI actors on various topics.
+LLM Discussion Generator powered by Llama Instruct models. Generates structured discussions between multiple AI actors on random topics.
 
 ## Overview
 
-LlamaSynthGen is a Node.js application that leverages the power of Llama.cpp models to generate realistic, multi-actor discussions. The system creates a specified number of AI personas, assigns them to discuss a given topic, and generates a conversation following natural dialogue patterns.
+LlamaSynthGen is a Node.js application that leverages the power of Llama 3rd gen models to generate realistic, multi-actor discussions. The system creates a specified number of AI personas, assigns them to discuss a given topic, and generates a conversation following natural dialogue patterns.
 
 ## Features
 
