@@ -23,7 +23,7 @@ export default {
     stop() {
         clearTimeout(innerState.timeoutId);
         innerState.complete = true;
-        readline.moveCursor(process.stdout, 0, -1);
+        readline.cursorTo(process.stdout, 0);
         readline.clearLine(process.stdout, 1);
     }
 }

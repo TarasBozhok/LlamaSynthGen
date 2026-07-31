@@ -117,8 +117,8 @@ async function getActors(actorsNum, useExtraDescription) {
 }
 
 async function getTopic(actorsNum) {
-    var systemPrompt = 'You are a helpful assistant';
-    var discussionStarterText = `Generate topic name that could be used for a discussion between ${actorsNum} people. Keep it short.`;
+    var systemPrompt = 'You are a helpful assistant.';
+    var discussionStarterText = `Generate single topic name for a discussion between ${actorsNum} people. Keep it short.`;
 
     return inferModel(
             getPrompt(systemPrompt, discussionStarterText)
