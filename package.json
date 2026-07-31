@@ -9,9 +9,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "start": "npm run lint && node --env-file-if-exists .env index.js",
-    "start-file": "npm run lint && node --env-file-if-exists .env $npm_config_name.js",
-    "test": "test"
+    "start": "node --env-file-if-exists .env index.js",
+    "start-dev": "npm run lint && node --env-file-if-exists .env index.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

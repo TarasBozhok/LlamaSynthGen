@@ -54,7 +54,7 @@ if (loopBreaker <= 0) {
     process.exit(1);
 }
 
-var topic = await getTopic();
+var topic = await getTopic(ACTORS_NUM);
 resetTopic(actors, null/*oldTopic*/, topic);
 
 var discussion = [];
