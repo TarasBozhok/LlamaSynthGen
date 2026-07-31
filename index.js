@@ -3,7 +3,7 @@ import { styleText } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import { getLlama } from 'node-llama-cpp';
-import TOKENS from './tokens.js';
+import { LLAMA3 as LLAMA3_TOKENS } from './tokens.js';
 import getUserInput from './userInput.js';
 
 const {ACTORS_NUM, ROUNDS_NUM, DEBUG_MODE} = await getUserInput('ACTORS_NUM', 'ROUNDS_NUM', 'DEBUG_MODE');
@@ -137,7 +137,7 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
         if (!options.specialTokens) {
             lastTen = lastTen.length >= 10 ? [...lastTen.slice(1), generatedToken] : generated;
 
-            if (model.detokenize(lastTen).includes(TOKENS.EOT)) break;
+            if (model.detokenize(lastTen).includes(LLAMA3_TOKENS.EOT)) break;
         }
     }
     options.streamTokens('\n');
@@ -154,13 +154,13 @@ async function inferenceFunction(sequence, model, text, options={ keepHistory: f
 function getPromptFunction(todayFormatted, systemPrompt, userMessage) {
 
     return `
-        ${TOKENS.BOT}${TOKENS.SHI}system${TOKENS.EHI}
+        ${LLAMA3_TOKENS.BOT}${LLAMA3_TOKENS.SHI}system${LLAMA3_TOKENS.EHI}
 
         Cutting Knowledge Date: December 2023
         Today Date: ${todayFormatted}
-        ${systemPrompt}${TOKENS.EOT}${TOKENS.SHI}user${TOKENS.EHI}
+        ${systemPrompt}${LLAMA3_TOKENS.EOT}${LLAMA3_TOKENS.SHI}user${LLAMA3_TOKENS.EHI}
 
-        ${userMessage}${TOKENS.EOT}${TOKENS.SHI}assistant${TOKENS.EHI}
+        ${userMessage}${LLAMA3_TOKENS.EOT}${LLAMA3_TOKENS.SHI}assistant${LLAMA3_TOKENS.EHI}
     `;
 }
 
